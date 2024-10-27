@@ -1,0 +1,3 @@
+[submodule "ros2_kitti_publishers"]
+	path = ros2_kitti_publishers
+	url = https://github.com/umtclskn/ros2_kitti_publishers
