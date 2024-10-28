@@ -11,11 +11,11 @@ def generate_launch_description():
         output='screen'
     )
 
-    voxel_grid = Node(
+    ground_segmentation = Node(
         package='pcl_ground_segmentation',
-        executable='pc_road_segmentation',
-        name='voxel_grid',
+        executable='ground_segmentation',
+        name='ground_segmentation',
         output='screen'
     )
 
-    return LaunchDescription([kitti_publisher, voxel_grid])
+    return LaunchDescription([kitti_publisher, ground_segmentation])

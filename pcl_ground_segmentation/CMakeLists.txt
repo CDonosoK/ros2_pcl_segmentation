@@ -16,19 +16,19 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(pc_road_segmentation src/ground_segmentation.cpp)
+add_executable(ground_segmentation src/ground_segmentation.cpp)
 ament_target_dependencies(
-  pc_road_segmentation
+  ground_segmentation
   rclcpp
   sensor_msgs
   std_msgs
   pcl_conversions
 )
-target_link_libraries(pc_road_segmentation ${PCL_LIBRARIES})
+target_link_libraries(ground_segmentation ${PCL_LIBRARIES})
 
 
 install(TARGETS
-  pc_road_segmentation
+ground_segmentation
   DESTINATION lib/${PROJECT_NAME}
 )
 
