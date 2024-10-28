@@ -22,11 +22,13 @@ typedef pcl::PointXYZ PointT;
 class GroundSegmentation: public rclcpp ::Node{
     public:
         GroundSegmentation():  Node("ground_segmentatiom"){
-            subscriber_ = this -> create_subscription<sensor_msgs::msg::PointCloud2>(
+            point_cloud_subscriber = this -> create_subscription<sensor_msgs::msg::PointCloud2>(
                 "/kitti/point_cloud", 10, std::bind(&GroundSegmentation::point_cloud_callback, this, std::placeholders::_1)
             );
 
-            publisher_ = this -> create_publisher<sensor_msgs::msg::PointCloud2>("/ground_segmentation", 10);
+            ground_segmentation_publisher = this -> create_publisher<sensor_msgs::msg::PointCloud2>("/ground_segmentation", 10);
+            filtered_segmented_publisher = this -> create_publisher<sensor_msgs::msg::PointCloud2>("/filtered_point_cloud", 10);
+
         }
 
     private:
@@ -52,6 +54,7 @@ class GroundSegmentation: public rclcpp ::Node{
         pcl::ExtractIndices<PointT> ground_extract_indices;
         pcl:: ModelCoefficients :: Ptr ground_coefficients (new pcl::ModelCoefficients);
         pcl::PointCloud<PointT> :: Ptr ground_cloud (new pcl:: PointCloud<PointT>) ;
+        pcl::PointCloud<PointT> :: Ptr filtered_cloud (new pcl:: PointCloud<PointT>) ;
 
         normal_estimator.setSearchMethod(tree);
         normal_estimator.setInputCloud(voxel_cloud);
@@ -78,11 +81,24 @@ class GroundSegmentation: public rclcpp ::Node{
         ground_cloud_ros2.header.frame_id = "base_link";
         ground_cloud_ros2.header.stamp = this -> now();
 
-        publisher_ -> publish(ground_cloud_ros2);
+        ground_segmentation_publisher -> publish(ground_cloud_ros2);
+
+        ground_extract_indices.setInputCloud(voxel_cloud);
+        ground_extract_indices.setIndices(ground_inliers);
+        ground_extract_indices.setNegative(true);
+        ground_extract_indices.filter(*filtered_cloud);
+
+        sensor_msgs::msg::PointCloud2 filtered_cloud_ros2;
+        pcl::toROSMsg(*filtered_cloud, filtered_cloud_ros2);
+        filtered_cloud_ros2.header.frame_id = "base_link";
+        filtered_cloud_ros2.header.stamp = this -> now();
+
+        filtered_segmented_publisher -> publish(filtered_cloud_ros2);
     }
 
-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher_;
-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>:: SharedPtr subscriber_;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr ground_segmentation_publisher;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr filtered_segmented_publisher;
+    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>:: SharedPtr point_cloud_subscriber;
 
 };
 
