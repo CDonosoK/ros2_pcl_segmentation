@@ -19,11 +19,11 @@
 using namespace std::chrono_literals;
 typedef pcl::PointXYZ PointT;
 
-class RoadSegmentation: public rclcpp ::Node{
+class GroundSegmentation: public rclcpp ::Node{
     public:
-        RoadSegmentation():  Node("road_segmentatiom"){
+        GroundSegmentation():  Node("ground_segmentatiom"){
             subscriber_ = this -> create_subscription<sensor_msgs::msg::PointCloud2>(
-                "/kitti/point_cloud", 10, std::bind(&RoadSegmentation::point_cloud_callback, this, std::placeholders::_1)
+                "/kitti/point_cloud", 10, std::bind(&GroundSegmentation::point_cloud_callback, this, std::placeholders::_1)
             );
 
             publisher_ = this -> create_publisher<sensor_msgs::msg::PointCloud2>("/ground_segmentation", 10);
@@ -42,44 +42,43 @@ class RoadSegmentation: public rclcpp ::Node{
         voxel_filter.setLeafSize(0.4, 0.4, 0.4);
         voxel_filter.filter(*voxel_cloud);
 
-        //Road Segmentation
         pcl::NormalEstimation<PointT, pcl::Normal> normal_estimator;
         pcl::search::KdTree<PointT>::Ptr tree (new pcl:: search ::KdTree<PointT>());
-        pcl::PointCloud<pcl::Normal>::Ptr road_normals (new pcl::PointCloud<pcl::Normal>);
+        pcl::PointCloud<pcl::Normal>::Ptr ground_normals (new pcl::PointCloud<pcl::Normal>);
 
-        pcl::SACSegmentationFromNormals<PointT, pcl::Normal> road_segmentator_from_normals;
-        pcl::PointIndices::Ptr road_inliers (new pcl::PointIndices);
+        pcl::SACSegmentationFromNormals<PointT, pcl::Normal> ground_segmentator_from_normals;
+        pcl::PointIndices::Ptr ground_inliers (new pcl::PointIndices);
         pcl::SACSegmentation<PointT> plane_segmentor;
-        pcl::ExtractIndices<PointT> road_extract_indices;
-        pcl:: ModelCoefficients :: Ptr road_coefficients (new pcl::ModelCoefficients);
-        pcl::PointCloud<PointT> :: Ptr road_cloud (new pcl:: PointCloud<PointT>) ;
+        pcl::ExtractIndices<PointT> ground_extract_indices;
+        pcl:: ModelCoefficients :: Ptr ground_coefficients (new pcl::ModelCoefficients);
+        pcl::PointCloud<PointT> :: Ptr ground_cloud (new pcl:: PointCloud<PointT>) ;
 
         normal_estimator.setSearchMethod(tree);
         normal_estimator.setInputCloud(voxel_cloud);
         normal_estimator.setKSearch(30);
-        normal_estimator.compute(*road_normals);
+        normal_estimator.compute(*ground_normals);
 
-        road_segmentator_from_normals.setOptimizeCoefficients(true);
-        road_segmentator_from_normals.setModelType(pcl::SACMODEL_NORMAL_PLANE);
-        road_segmentator_from_normals.setMethodType(pcl::SAC_RANSAC);
-        road_segmentator_from_normals.setDistanceThreshold(0.4);
-        road_segmentator_from_normals.setNormalDistanceWeight(0.5);
-        road_segmentator_from_normals.setMaxIterations(100);
-        road_segmentator_from_normals.setInputCloud(voxel_cloud);
-        road_segmentator_from_normals.setInputNormals(road_normals); 
-        road_segmentator_from_normals.segment(*road_inliers, *road_coefficients);
+        ground_segmentator_from_normals.setOptimizeCoefficients(true);
+        ground_segmentator_from_normals.setModelType(pcl::SACMODEL_NORMAL_PLANE);
+        ground_segmentator_from_normals.setMethodType(pcl::SAC_RANSAC);
+        ground_segmentator_from_normals.setDistanceThreshold(0.4);
+        ground_segmentator_from_normals.setNormalDistanceWeight(0.5);
+        ground_segmentator_from_normals.setMaxIterations(100);
+        ground_segmentator_from_normals.setInputCloud(voxel_cloud);
+        ground_segmentator_from_normals.setInputNormals(ground_normals); 
+        ground_segmentator_from_normals.segment(*ground_inliers, *ground_coefficients);
 
-        road_extract_indices.setInputCloud(voxel_cloud);
-        road_extract_indices.setIndices(road_inliers);
-        road_extract_indices.setNegative(false);
-        road_extract_indices.filter(*road_cloud);
+        ground_extract_indices.setInputCloud(voxel_cloud);
+        ground_extract_indices.setIndices(ground_inliers);
+        ground_extract_indices.setNegative(false);
+        ground_extract_indices.filter(*ground_cloud);
 
-        sensor_msgs::msg::PointCloud2 road_cloud_ros2;
-        pcl::toROSMsg(*road_cloud, road_cloud_ros2);
-        road_cloud_ros2.header.frame_id = "base_link";
-        road_cloud_ros2.header.stamp = this -> now();
+        sensor_msgs::msg::PointCloud2 ground_cloud_ros2;
+        pcl::toROSMsg(*ground_cloud, ground_cloud_ros2);
+        ground_cloud_ros2.header.frame_id = "base_link";
+        ground_cloud_ros2.header.stamp = this -> now();
 
-        publisher_ -> publish(road_cloud_ros2);
+        publisher_ -> publish(ground_cloud_ros2);
     }
 
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher_;
@@ -90,13 +89,10 @@ class RoadSegmentation: public rclcpp ::Node{
 
 int main(int argc, char **argv){
     
-    rclcpp::init(argc, argv); // Se inicializa el nodo
-
-    auto node = std::make_shared<RoadSegmentation>();
-
-    rclcpp::spin(node); // Se hace un spin para mantener vivo el nodo
-    
-    rclcpp::shutdown(); // Se terminal el nodo
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<GroundSegmentation>();
+    rclcpp::spin(node);
+    rclcpp::shutdown();
 
     return 0;
 }
