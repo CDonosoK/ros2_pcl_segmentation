@@ -5,7 +5,7 @@ https://opensource.org/licenses/BSD-3-Clause)
 [![Ros2 Version](https://img.shields.io/badge/ROS-Rolling-green)](
 https://docs.ros.org/en/rolling/index.html)
 
-<img src=https://github.com/CDonosoK/ros2_pcl_segmentation/tree/main/images/ground_segmentation.gif>
+<img src=https://github.com/CDonosoK/ros2_pcl_segmentation/blob/main/images/ground_segmentation.gif>
 
 ROS2 Package for point cloud segmentation using PCL library. This repository contains multiple segmentation algorithms for point clouds. 
 
