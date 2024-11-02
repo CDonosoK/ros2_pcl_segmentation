@@ -6,8 +6,11 @@
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "pcl_conversions/pcl_conversions.h"
+
 #include "pcl/filters/voxel_grid.h"
 #include <pcl/filters/extract_indices.h>
+#include <pcl/filters/passthrough.h>
+
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
@@ -37,6 +40,18 @@ class GroundSegmentation: public rclcpp ::Node{
 
         pcl::PointCloud<PointT> :: Ptr pcl_cloud (new pcl:: PointCloud<PointT>) ;
         pcl::fromROSMsg(*input_cloud, *pcl_cloud);
+
+        pcl::PassThrough<PointT> passing_x;
+        passing_x.setInputCloud(pcl_cloud);
+        passing_x.setFilterFieldName("x");
+        passing_x.setFilterLimits(-30.0, 30.0);
+        passing_x.filter(*pcl_cloud);
+
+        pcl::PassThrough<PointT> passing_y;
+        passing_y.setInputCloud(pcl_cloud);
+        passing_y.setFilterFieldName("y");
+        passing_y.setFilterLimits(-15.0, 15.0);
+        passing_y.filter(*pcl_cloud);
 
         pcl::PointCloud<PointT> :: Ptr voxel_cloud (new pcl:: PointCloud<PointT>) ;
         pcl::VoxelGrid<PointT> voxel_filter;
