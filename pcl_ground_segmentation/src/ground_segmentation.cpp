@@ -35,88 +35,55 @@ class GroundSegmentation: public rclcpp ::Node{
         }
 
     private:
+    void point_cloud_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+        pcl::fromROSMsg(*msg, *cloud);
 
-    void point_cloud_callback(const sensor_msgs::msg::PointCloud2::SharedPtr input_cloud){
+        // Configuración del segmentador
+        pcl::SACSegmentation<pcl::PointXYZ> seg;
+        seg.setOptimizeCoefficients(true);
+        seg.setModelType(pcl::SACMODEL_PLANE);
+        seg.setMethodType(pcl::SAC_RANSAC);
+        seg.setDistanceThreshold(0.2);
 
-        pcl::PointCloud<PointT> :: Ptr pcl_cloud (new pcl:: PointCloud<PointT>) ;
-        pcl::fromROSMsg(*input_cloud, *pcl_cloud);
+        pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
+        pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
 
-        pcl::PassThrough<PointT> passing_x;
-        passing_x.setInputCloud(pcl_cloud);
-        passing_x.setFilterFieldName("x");
-        passing_x.setFilterLimits(-30.0, 30.0);
-        passing_x.filter(*pcl_cloud);
+        seg.setInputCloud(cloud);
+        seg.segment(*inliers, *coefficients);
 
-        pcl::PassThrough<PointT> passing_y;
-        passing_y.setInputCloud(pcl_cloud);
-        passing_y.setFilterFieldName("y");
-        passing_y.setFilterLimits(-15.0, 15.0);
-        passing_y.filter(*pcl_cloud);
+        if (inliers->indices.empty()) {
+            RCLCPP_WARN(this->get_logger(), "No objects detected!");
+            return;
+        }
 
-        pcl::PointCloud<PointT> :: Ptr voxel_cloud (new pcl:: PointCloud<PointT>) ;
-        pcl::VoxelGrid<PointT> voxel_filter;
-        voxel_filter.setInputCloud(pcl_cloud);
-        voxel_filter.setLeafSize(0.4, 0.4, 0.4);
-        voxel_filter.filter(*voxel_cloud);
+        pcl::ExtractIndices<pcl::PointXYZ> extract;
+        extract.setInputCloud(cloud);
+        extract.setIndices(inliers);
+        extract.setNegative(true);
 
-        pcl::NormalEstimation<PointT, pcl::Normal> normal_estimator;
-        pcl::search::KdTree<PointT>::Ptr tree (new pcl:: search ::KdTree<PointT>());
-        pcl::PointCloud<pcl::Normal>::Ptr ground_normals (new pcl::PointCloud<pcl::Normal>);
 
-        pcl::SACSegmentationFromNormals<PointT, pcl::Normal> ground_segmentator_from_normals;
-        pcl::PointIndices::Ptr ground_inliers (new pcl::PointIndices);
-        pcl::SACSegmentation<PointT> plane_segmentor;
-        pcl::ExtractIndices<PointT> ground_extract_indices;
-        pcl:: ModelCoefficients :: Ptr ground_coefficients (new pcl::ModelCoefficients);
-        pcl::PointCloud<PointT> :: Ptr ground_cloud (new pcl:: PointCloud<PointT>) ;
-        pcl::PointCloud<PointT> :: Ptr filtered_cloud (new pcl:: PointCloud<PointT>) ;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr segmentedCloud(new pcl::PointCloud<pcl::PointXYZ>());
+        extract.filter(*segmentedCloud);
+        sensor_msgs::msg::PointCloud2 output;
+        pcl::toROSMsg(*segmentedCloud, output);
+        output.header = msg->header;
+        filtered_segmented_publisher->publish(output);
 
-        normal_estimator.setSearchMethod(tree);
-        normal_estimator.setInputCloud(voxel_cloud);
-        normal_estimator.setKSearch(30);
-        normal_estimator.compute(*ground_normals);
+        // Ground segmentation
+        extract.setNegative(false);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr groundCloud(new pcl::PointCloud<pcl::PointXYZ>());
+        extract.filter(*groundCloud);
+        pcl::toROSMsg(*groundCloud, output);
+        output.header = msg->header;
+        ground_segmentation_publisher->publish(output);
 
-        ground_segmentator_from_normals.setOptimizeCoefficients(true);
-        ground_segmentator_from_normals.setModelType(pcl::SACMODEL_NORMAL_PLANE);
-        ground_segmentator_from_normals.setMethodType(pcl::SAC_RANSAC);
-        ground_segmentator_from_normals.setDistanceThreshold(0.4);
-        ground_segmentator_from_normals.setNormalDistanceWeight(0.5);
-        ground_segmentator_from_normals.setMaxIterations(100);
-        ground_segmentator_from_normals.setInputCloud(voxel_cloud);
-        ground_segmentator_from_normals.setInputNormals(ground_normals); 
-        ground_segmentator_from_normals.segment(*ground_inliers, *ground_coefficients);
-
-        ground_extract_indices.setInputCloud(voxel_cloud);
-        ground_extract_indices.setIndices(ground_inliers);
-        ground_extract_indices.setNegative(false);
-        ground_extract_indices.filter(*ground_cloud);
-
-        sensor_msgs::msg::PointCloud2 ground_cloud_ros2;
-        pcl::toROSMsg(*ground_cloud, ground_cloud_ros2);
-        ground_cloud_ros2.header.frame_id = "base_link";
-        ground_cloud_ros2.header.stamp = this -> now();
-
-        ground_segmentation_publisher -> publish(ground_cloud_ros2);
-
-        ground_extract_indices.setInputCloud(voxel_cloud);
-        ground_extract_indices.setIndices(ground_inliers);
-        ground_extract_indices.setNegative(true);
-        ground_extract_indices.filter(*filtered_cloud);
-
-        sensor_msgs::msg::PointCloud2 filtered_cloud_ros2;
-        pcl::toROSMsg(*filtered_cloud, filtered_cloud_ros2);
-        filtered_cloud_ros2.header.frame_id = "base_link";
-        filtered_cloud_ros2.header.stamp = this -> now();
-
-        filtered_segmented_publisher -> publish(filtered_cloud_ros2);
     }
 
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr ground_segmentation_publisher;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr filtered_segmented_publisher;
-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>:: SharedPtr point_cloud_subscriber;
-
+    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_subscriber;
 };
-
 
 int main(int argc, char **argv){
     
