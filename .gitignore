@@ -1,2 +1,3 @@
+*.pcd
 /kitti_data
 .vscode

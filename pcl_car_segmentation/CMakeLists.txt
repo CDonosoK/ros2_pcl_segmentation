@@ -17,20 +17,44 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(car_segmentation src/car_segmentation.cpp)
+add_executable(car_segmentation_by_clusters src/car_segmentation_by_clusters.cpp)
+add_executable(cloud_pre_processing src/cloud_pre_processing.cpp)
+
 ament_target_dependencies(
-  car_segmentation
+  car_segmentation_by_clusters
   rclcpp
   sensor_msgs
   std_msgs
   pcl_conversions
   visualization_msgs
 )
-target_link_libraries(car_segmentation ${PCL_LIBRARIES})
 
+ament_target_dependencies(
+  cloud_pre_processing
+  rclcpp
+  sensor_msgs
+  std_msgs
+  pcl_conversions
+  visualization_msgs
+)
+
+target_link_libraries(
+  car_segmentation_by_clusters
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(
+  cloud_pre_processing
+  ${PCL_LIBRARIES}
+)
 
 install(TARGETS
-car_segmentation
+car_segmentation_by_clusters
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  cloud_pre_processing
   DESTINATION lib/${PROJECT_NAME}
 )
 

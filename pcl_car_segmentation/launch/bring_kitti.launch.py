@@ -11,18 +11,18 @@ def generate_launch_description():
         output='screen'
     )
 
-    ground_segmentation = Node(
-        package='pcl_ground_segmentation',
-        executable='ground_segmentation',
-        name='ground_segmentation',
-        output='screen'
-    )
-
-    car_segmentation = Node(
+    pre_processing = Node(
         package='pcl_car_segmentation',
-        executable='car_segmentation',
-        name='car_segmentation',
+        executable='cloud_pre_processing',
+        name='pre_processing',
         output='screen'
     )
 
-    return LaunchDescription([kitti_publisher, car_segmentation, ground_segmentation])
+    car_segmentation_by_clusters = Node(
+        package='pcl_car_segmentation',
+        executable='car_segmentation_by_clusters',
+        name='pre_processing',
+        output='screen'
+    )
+
+    return LaunchDescription([kitti_publisher, pre_processing, car_segmentation_by_clusters])

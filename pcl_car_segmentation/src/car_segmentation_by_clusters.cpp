@@ -1,6 +1,8 @@
 #include <chrono>
 #include <memory>
 #include <string>
+#include <sys/types.h>
+#include <pwd.h>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
@@ -26,25 +28,37 @@
 
 #include "visualization_msgs/msg/marker_array.hpp"
 
+#include <Eigen/Dense> 
+#include <vector>
+
 using namespace std::chrono_literals;
 typedef pcl::PointXYZ PointT;
+int car_id = 0;
+struct passwd *pw = getpwuid(getuid());
+const char *home_dir = pw -> pw_dir;
+
 
 class CarSegmentation: public rclcpp ::Node{
     public:
+        std::string folder_path = std::string(home_dir) + "/ros2_ws/src/ros2_pcl_segmentation/pcl_car_segmentation/car_dataset_clouds/";
+
         CarSegmentation():  Node("car_segmentation"){
+
+            if (!std::filesystem::exists(folder_path)) {
+                std::filesystem::create_directories(folder_path);
+                std::cerr << "Directory created: " << folder_path << std::endl;
+            }
+
             filtered_cloud_subscriber = this -> create_subscription<sensor_msgs::msg::PointCloud2>(
-                "/filtered_point_cloud", 10, std::bind(&CarSegmentation::point_cloud_callback, this, std::placeholders::_1)
+                "/pcl_car_segmentation/filtered_cloud", 10, std::bind(&CarSegmentation::point_cloud_callback, this, std::placeholders::_1)
             );
 
-            car_segmentation_publisher = this -> create_publisher<sensor_msgs::msg::PointCloud2>("/car_segmentation", 10);
-
-            bounding_box_publisher = this -> create_publisher<visualization_msgs::msg::MarkerArray>("/bounding_boxes", 10);
+            car_segmentation_publisher = this -> create_publisher<sensor_msgs::msg::PointCloud2>("/pcl_car_segmentation/car_segmentation", 10);
         }
 
     private:
 
     void save_cluster(pcl::PointCloud<PointT> :: Ptr cluster, std::string file_name){
-        std::string folder_path = "/home/cdonoso/ros2_ws/src/ros2_pcl_segmentation/pcl_car_segmentation/car_dataset_clouds/";
         file_name = folder_path + file_name;
         pcl::io::savePCDFileASCII(file_name, *cluster);
         std::cerr << "Saved " << cluster -> points.size() << " data points to " << file_name << std::endl;
@@ -55,24 +69,24 @@ class CarSegmentation: public rclcpp ::Node{
         pcl::PointCloud<PointT> :: Ptr pcl_cloud (new pcl:: PointCloud<PointT>) ;
         pcl::fromROSMsg(*input_cloud, *pcl_cloud);
 
-        pcl::PassThrough<PointT> passing_y;
-        passing_y.setInputCloud(pcl_cloud);
-        passing_y.setFilterFieldName("y");
-        passing_y.setFilterLimits(-5.0, 8.0);
-        passing_y.filter(*pcl_cloud);
-
         pcl::PointCloud<PointT> :: Ptr single_segmented_cluster (new pcl:: PointCloud<PointT>) ;
         pcl::PointCloud<PointT> :: Ptr all_clusters (new pcl:: PointCloud<PointT>) ;
         std::vector<pcl::PointIndices> cluster_indices;
         pcl::EuclideanClusterExtraction<PointT> ecludian_cluster_extractor;
         pcl::search::KdTree<PointT>::Ptr tree (new pcl:: search ::KdTree<PointT>());
 
+        // Apply Voxel Grid Filter
+        pcl::VoxelGrid<PointT> voxel_grid_filter;
+        voxel_grid_filter.setInputCloud(pcl_cloud);
+        voxel_grid_filter.setLeafSize(0.2f, 0.2f, 0.2f);
+        voxel_grid_filter.filter(*pcl_cloud);
+
         tree -> setInputCloud(pcl_cloud);
 
-        int min_cluster_size = 60;
-        int max_cluster_size = 180;
+        int min_cluster_size = 100;
+        int max_cluster_size = 700;
 
-        ecludian_cluster_extractor.setClusterTolerance(0.5);
+        ecludian_cluster_extractor.setClusterTolerance(0.6);
         ecludian_cluster_extractor.setMinClusterSize(min_cluster_size);
         ecludian_cluster_extractor.setMaxClusterSize(max_cluster_size);
         ecludian_cluster_extractor.setSearchMethod(tree);
@@ -82,92 +96,51 @@ class CarSegmentation: public rclcpp ::Node{
         size_t min_cloud_threshold = min_cluster_size;
         size_t max_cloud_threshold = max_cluster_size;
 
-        struct bounding_box{
-            float x_min;
-            float x_max;
-            float y_min;
-            float y_max;
-            float z_min;
-            float z_max;
-            double r=1.0;
-            double g=0.0;
-            double b=0.0;
-        };
-
-        std::vector<bounding_box> bounding_boxes;
+        float min_length = 1.0;
+        float max_length = 5.0;
+        float min_width = 1.0;
+        float max_width = 5.0;
+        float min_height = 1.0;
+        float max_height = 2.0;
 
         for (size_t i = 0; i < cluster_indices.size(); i++){
-            if (cluster_indices[i].indices.size() > min_cloud_threshold && cluster_indices[i].indices.size() < max_cloud_threshold){
+            if (cluster_indices[i].indices.size() > min_cloud_threshold + 20 && cluster_indices[i].indices.size() < max_cloud_threshold - 20){
                 pcl::PointCloud<PointT> :: Ptr reasonable_cluster (new pcl:: PointCloud<PointT>) ;
                 pcl::ExtractIndices<PointT> extract_indices;
                 pcl::IndicesPtr indices (new std::vector<int>(cluster_indices[i].indices.begin(), cluster_indices[i].indices.end()));
+                
 
                 extract_indices.setInputCloud(pcl_cloud);
                 extract_indices.setIndices(indices);
                 extract_indices.setNegative(false);
                 extract_indices.filter(*reasonable_cluster);
 
-                std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-
                 Eigen::Vector4f min_pt, max_pt;
                 pcl::getMinMax3D<PointT>(*reasonable_cluster, min_pt, max_pt);
 
-                pcl::PointXYZ center((min_pt[0] + max_pt[0]) / 2, (min_pt[1] + max_pt[1]) / 2, (min_pt[2] + max_pt[2]) / 2);
-                bounding_box box;
-                box.x_min = min_pt[0];
-                box.x_max = max_pt[0];
-                box.y_min = min_pt[1];
-                box.y_max = max_pt[1];
-                box.z_min = min_pt[2];
-                box.z_max = max_pt[2];
-                bounding_boxes.push_back(box);
+                float length = max_pt[0] - min_pt[0];
+                float width = max_pt[1] - min_pt[1];
+                float height = max_pt[2] - min_pt[2];
 
-                //save_cluster(reasonable_cluster, "car_cluster_" + std::to_string(now.time_since_epoch().count()) + ".pcd");
-
-                *all_clusters += *reasonable_cluster;
+                if (length >= min_length && length <= max_length &&
+                    width >= min_width && width <= max_width &&
+                    height >= min_height && height <= max_height) {
+                        std::string file_name = "car_cluster_" + std::to_string(cluster_indices[i].indices.size()) + "_" + std::to_string(length) + "_" + std::to_string(width) + "_" + std::to_string(height) + ".pcd";
+                        //save_cluster(reasonable_cluster, file_name);
+                        *all_clusters += *reasonable_cluster;
+                    }
 
             }
-        }
-
-        visualization_msgs::msg::MarkerArray markers_array;
-        int id = 0;
-        const std_msgs::msg::Header header = input_cloud -> header;
-        for (size_t i = 0; i < bounding_boxes.size(); i++){
-            visualization_msgs::msg::Marker marker;
-            marker.header = header;
-            marker.ns = "bounding_boxes";
-            marker.id = id;
-            marker.type = visualization_msgs::msg::Marker::CUBE;
-            marker.action = visualization_msgs::msg::Marker::ADD;
-            marker.pose.position.x = (bounding_boxes[i].x_min + bounding_boxes[i].x_max) / 2;
-            marker.pose.position.y = (bounding_boxes[i].y_min + bounding_boxes[i].y_max) / 2;
-            marker.pose.position.z = (bounding_boxes[i].z_min + bounding_boxes[i].z_max) / 2;
-            marker.pose.orientation.x = 0.0;
-            marker.pose.orientation.y = 0.0;
-            marker.pose.orientation.z = 0.0;
-            marker.pose.orientation.w = 1.0;
-            marker.scale.x = bounding_boxes[i].x_max - bounding_boxes[i].x_min;
-            marker.scale.y = bounding_boxes[i].y_max - bounding_boxes[i].y_min;
-            marker.scale.z = bounding_boxes[i].z_max - bounding_boxes[i].z_min;
-            marker.color.r = bounding_boxes[i].r;
-            marker.color.g = bounding_boxes[i].g;
-            marker.color.b = bounding_boxes[i].b;
-            marker.color.a = 0.5;
-            marker.lifetime.sec = 2.0;
-            markers_array.markers.push_back(marker);
-            id++;
         }
 
         sensor_msgs::msg::PointCloud2::SharedPtr car_segmentation_msg (new sensor_msgs::msg::PointCloud2);
         pcl::toROSMsg(*all_clusters, *car_segmentation_msg);
         car_segmentation_msg -> header = input_cloud -> header;
         car_segmentation_publisher -> publish(*car_segmentation_msg);
-        bounding_box_publisher -> publish(markers_array);
 
 
     }
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr car_segmentation_publisher;
-    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr bounding_box_publisher;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>:: SharedPtr filtered_cloud_subscriber;
 };
 

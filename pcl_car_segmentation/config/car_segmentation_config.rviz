@@ -1,13 +1,12 @@
 Panels:
   - Class: rviz_common/Displays
-    Help Height: 128
+    Help Height: 139
     Name: Displays
     Property Tree Widget:
       Expanded:
         - /PointClouds1
-        - /Markers1/car_markers1
-      Splitter Ratio: 0.5
-    Tree Height: 371
+      Splitter Ratio: 0.4294871687889099
+    Tree Height: 372
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -75,7 +74,7 @@ Visualization Manager:
           Color: 255; 255; 255
           Color Transformer: FlatColor
           Decay Time: 0
-          Enabled: true
+          Enabled: false
           Invert Rainbow: false
           Max Color: 255; 255; 255
           Max Intensity: 0.9900000095367432
@@ -84,15 +83,48 @@ Visualization Manager:
           Name: kitti_cloud
           Position Transformer: XYZ
           Selectable: true
-          Size (Pixels): 3
-          Size (m): 0.009999999776482582
-          Style: Flat Squares
+          Size (Pixels): 1
+          Size (m): 0.03999999910593033
+          Style: Spheres
           Topic:
             Depth: 5
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /kitti/point_cloud
+          Use Fixed Frame: true
+          Use rainbow: true
+          Value: false
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Autocompute Value Bounds:
+            Max Value: 2.9099998474121094
+            Min Value: -10.229999542236328
+            Value: true
+          Axis: Z
+          Channel Name: intensity
+          Class: rviz_default_plugins/PointCloud2
+          Color: 28; 113; 216
+          Color Transformer: FlatColor
+          Decay Time: 0
+          Enabled: true
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Max Intensity: 4096
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: filtered_cloud
+          Position Transformer: XYZ
+          Selectable: true
+          Size (Pixels): 4
+          Size (m): 0.10000000149011612
+          Style: Spheres
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /pcl_car_segmentation/filtered_cloud
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
@@ -118,47 +150,14 @@ Visualization Manager:
           Position Transformer: XYZ
           Selectable: true
           Size (Pixels): 3
-          Size (m): 0.30000001192092896
+          Size (m): 0.20000000298023224
           Style: Tiles
           Topic:
             Depth: 5
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: /ground_segmentation
-          Use Fixed Frame: true
-          Use rainbow: true
-          Value: true
-        - Alpha: 1
-          Autocompute Intensity Bounds: true
-          Autocompute Value Bounds:
-            Max Value: 2.9099998474121094
-            Min Value: -10.229999542236328
-            Value: true
-          Axis: Z
-          Channel Name: intensity
-          Class: rviz_default_plugins/PointCloud2
-          Color: 28; 113; 216
-          Color Transformer: FlatColor
-          Decay Time: 0
-          Enabled: true
-          Invert Rainbow: false
-          Max Color: 255; 255; 255
-          Max Intensity: 4096
-          Min Color: 0; 0; 0
-          Min Intensity: 0
-          Name: filtered_cloud
-          Position Transformer: XYZ
-          Selectable: true
-          Size (Pixels): 4
-          Size (m): 0.20000000298023224
-          Style: Spheres
-          Topic:
-            Depth: 5
-            Durability Policy: Volatile
-            History Policy: Keep Last
-            Reliability Policy: Reliable
-            Value: /filtered_point_cloud
+            Value: /pcl_car_segmentation/ground_cloud
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
@@ -171,7 +170,7 @@ Visualization Manager:
           Axis: Z
           Channel Name: intensity
           Class: rviz_default_plugins/PointCloud2
-          Color: 224; 27; 36
+          Color: 255; 0; 0
           Color Transformer: FlatColor
           Decay Time: 0
           Enabled: true
@@ -184,35 +183,19 @@ Visualization Manager:
           Position Transformer: XYZ
           Selectable: true
           Size (Pixels): 3
-          Size (m): 0.30000001192092896
+          Size (m): 0.15000000596046448
           Style: Boxes
           Topic:
             Depth: 5
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: /car_segmentation
+            Value: /pcl_car_segmentation/car_segmentation
           Use Fixed Frame: true
           Use rainbow: true
           Value: true
       Enabled: true
       Name: PointClouds
-    - Class: rviz_common/Group
-      Displays:
-        - Class: rviz_default_plugins/MarkerArray
-          Enabled: true
-          Name: car_markers
-          Namespaces:
-            bounding_boxes: true
-          Topic:
-            Depth: 5
-            Durability Policy: Volatile
-            History Policy: Keep Last
-            Reliability Policy: Reliable
-            Value: /bounding_boxes
-          Value: true
-      Enabled: true
-      Name: Markers
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
@@ -259,25 +242,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 47.79600524902344
+      Distance: 20.675064086914062
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.2654517590999603
-        Y: 3.893125295639038
-        Z: -3.9143459796905518
+        X: -13.904291152954102
+        Y: -1.808028221130371
+        Z: 13.590761184692383
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5347979068756104
+      Pitch: 0.6747981905937195
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.160846710205078
+      Yaw: 3.7991440296173096
     Saved: ~
 Window Geometry:
   Displays:
@@ -287,7 +270,7 @@ Window Geometry:
   Hide Right Dock: true
   Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000025600000373fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005d00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003f00000233000000cc00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d00610067006501000002780000013a0000001700ffffff000000010000010000000373fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003f00000373000000a900fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003cfc0100000002fb0000000800540069006d00650100000000000007800000026f00fffffffb0000000800540069006d00650100000000000004500000000000000000000005240000037300000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001d600000373fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005d00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003f0000023f000000cc00fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d00610067006501000002840000012e0000001700ffffff000000010000010000000373fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003f00000373000000a900fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003cfc0100000002fb0000000800540069006d00650100000000000007800000026f00fffffffb0000000800540069006d00650100000000000004500000000000000000000005a40000037300000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
