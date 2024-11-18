@@ -20,7 +20,10 @@ WORKDIR /ros2_ws/src
 RUN git clone https://github.com/CDonosoK/ros2_pcl_segmentation.git
 
 ###### Build the workspace
+WORKDIR /ros2_ws
+RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
 RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && colcon build"
 
 ###### Source the workspace
 RUN echo "source /ros2_ws/install/setup.bash" >> ~/.bashrc
+RUN /bin/bash -c "source /ros2_ws/install/setup.bash"
