@@ -2,8 +2,8 @@
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](
 https://opensource.org/licenses/BSD-3-Clause)
-[![Ros2 Version](https://img.shields.io/badge/ROS-Rolling-green)](
-https://docs.ros.org/en/rolling/index.html)
+[![Ros2 Version](https://img.shields.io/badge/ROS-Humble-green)](
+https://docs.ros.org/en/humble/index.html)
 
 <img src=https://github.com/CDonosoK/ros2_pcl_segmentation/blob/main/images/ground_segmentation.gif>
 
