@@ -73,3 +73,6 @@ For each ROS2 Package I have created a launch file that will run the segmentatio
     ros2 launch pcl_human_segmentation bring_kitti.launch.py
     ros2 launch pcl_human_segmentation bring_rviz.launch.py
     ```
+
+colcon build --packages-select pcl_human_segmentation 
+docker exec -it ros2_pcl_segmentation /bin/bash

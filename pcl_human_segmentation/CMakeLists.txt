@@ -8,6 +8,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+find_package(rosidl_default_generators REQUIRED)
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/HumanPose.msg"
+ )
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
@@ -42,6 +46,7 @@ install(TARGETS
 install(PROGRAMS
   scripts/camera.py
   scripts/human_detection.py
+  scripts/sensor_fusion.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

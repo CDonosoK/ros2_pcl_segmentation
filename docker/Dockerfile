@@ -23,10 +23,11 @@ RUN apt-get install -y \
     python3-pip
 
 RUN pip install opencv-python
-RUN pip install pandas
-RUN pip install numpy==1.24.3
+RUN pip install --upgrade numpy==1.24.3
 RUN pip install matplotlib==3.6.0
-RUN pip install ultralytics
+RUN pip install \
+    pandas \
+    ultralytics
     
     
 RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118

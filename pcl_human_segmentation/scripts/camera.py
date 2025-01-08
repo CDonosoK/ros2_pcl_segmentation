@@ -12,7 +12,7 @@ class CameraNode(Node):
     def __init__(self):
         super().__init__('camera_node')
 
-        self.image_pub = self.create_publisher(Image, '/camera/raw_image', 10)
+        self.image_pub = self.create_publisher(Image, '/pcl_human_segmentation/camera/raw_image', 10)
         self.bridge = CvBridge()
 
         calibration_file = '/ros2_ws/src/ros2_pcl_segmentation/pcl_human_segmentation/config/camera_calibration.yaml'
@@ -49,11 +49,9 @@ class CameraNode(Node):
         """Captura imágenes, aplica la calibración y publica la imagen corregida."""
         ret, frame = self.camera.read()
         if ret:
-            # Corregir la distorsión de la imagen
             if self.camera_matrix is not None and self.dist_coeffs is not None:
                 frame = self.undistort_image(frame)
 
-            # Convertir la imagen a mensaje ROS y publicarla
             image_msg = self.bridge.cv2_to_imgmsg(frame, encoding='bgr8')
             image_msg.header.stamp = self.get_clock().now().to_msg()
             image_msg.header.frame_id = 'camera_link'

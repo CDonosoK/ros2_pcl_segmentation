@@ -1,0 +1,17 @@
+lidar:
+  topic: /rslidar_points
+  frame_id: rslidar
+  min_camera_angle: -0.5
+  max_camera_angle: 0.5
+  max_distance: 30.0
+  min_distance: 0.5
+
+camera:
+  topic: /camera/image_raw
+  frame_id: camera
+  width: 640
+  height: 480
+
+pcl_human:
+  confidence_threshold: 0.8
+  model: yolo11s-seg.pt
