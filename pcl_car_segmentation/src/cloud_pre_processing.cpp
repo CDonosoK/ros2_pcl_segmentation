@@ -25,17 +25,35 @@ typedef pcl::PointXYZ PointT;
 class GroundSegmentation : public rclcpp::Node {
 public:
     GroundSegmentation() : Node("ground_segmentation") {
+        voxel_leaf_size_ = this->declare_parameter<double>("voxel_leaf_size", 0.1);
+        ransac_distance_threshold_ = this->declare_parameter<double>("ransac_distance_threshold", 0.3);
+
+        input_topic_ = this->declare_parameter<std::string>("input_topic", "/kitti/point_cloud");
+        ground_topic_ = this->declare_parameter<std::string>("ground_topic", "/pcl_car_segmentation/ground_cloud");
+        filtered_topic_ = this->declare_parameter<std::string>("filtered_topic", "/pcl_car_segmentation/filtered_cloud");
+
         point_cloud_subscriber = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-            "/kitti/point_cloud", 
-            10, 
+            input_topic_,
+            10,
             std::bind(&GroundSegmentation::point_cloud_cb, this, std::placeholders::_1)
         );
 
-        ground_segmentation_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("/pcl_car_segmentation/ground_cloud", 10);
-        filtered_segmented_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>("/pcl_car_segmentation/filtered_cloud", 10);
+        ground_segmentation_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>(ground_topic_, 10);
+        filtered_segmented_publisher = this->create_publisher<sensor_msgs::msg::PointCloud2>(filtered_topic_, 10);
+
+        RCLCPP_INFO(this->get_logger(), "Cloud preprocessing node started");
+        RCLCPP_INFO(this->get_logger(), "Input topic: %s", input_topic_.c_str());
+        RCLCPP_INFO(this->get_logger(), "Filtered topic: %s", filtered_topic_.c_str());
+        RCLCPP_INFO(this->get_logger(), "Ground topic: %s", ground_topic_.c_str());
     }
 
 private:
+    double voxel_leaf_size_;
+    double ransac_distance_threshold_;
+    std::string input_topic_;
+    std::string ground_topic_;
+    std::string filtered_topic_;
+
     void point_cloud_cb(const sensor_msgs::msg::PointCloud2::SharedPtr msg) {
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
         pcl::fromROSMsg(*msg, *cloud);
@@ -43,7 +61,7 @@ private:
         // Downsample
         pcl::VoxelGrid<pcl::PointXYZ> voxel_grid;
         voxel_grid.setInputCloud(cloud);
-        voxel_grid.setLeafSize(0.1f, 0.1f, 0.1f);
+        voxel_grid.setLeafSize(voxel_leaf_size_, voxel_leaf_size_, voxel_leaf_size_);
         voxel_grid.filter(*cloud);
 
         // Filtering
@@ -51,7 +69,7 @@ private:
         segmentator.setOptimizeCoefficients(true);
         segmentator.setModelType(pcl::SACMODEL_PLANE);
         segmentator.setMethodType(pcl::SAC_RANSAC);
-        segmentator.setDistanceThreshold(0.3);
+        segmentator.setDistanceThreshold(ransac_distance_threshold_);
 
         pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients());
         pcl::PointIndices::Ptr inliers(new pcl::PointIndices());

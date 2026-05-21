@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <chrono>
 #include <memory>
 #include <string>
@@ -44,21 +45,52 @@ class CarSegmentation: public rclcpp ::Node{
 
         CarSegmentation():  Node("car_segmentation"){
 
+            cluster_voxel_leaf_size_ = this->declare_parameter<double>("cluster_voxel_leaf_size", 0.2);
+            cluster_tolerance_ = this->declare_parameter<double>("cluster_tolerance", 0.6);
+
+            min_cluster_size_ = this->declare_parameter<int>("min_cluster_size", 100);
+            max_cluster_size_ = this->declare_parameter<int>("max_cluster_size", 700);
+
+            min_length_ = this->declare_parameter<double>("min_length", 1.0);
+            max_length_ = this->declare_parameter<double>("max_length", 5.0);
+            min_width_ = this->declare_parameter<double>("min_width", 1.0);
+            max_width_ = this->declare_parameter<double>("max_width", 5.0);
+            min_height_ = this->declare_parameter<double>("min_height", 1.0);
+            max_height_ = this->declare_parameter<double>("max_height", 2.0);
+
+            input_topic_ = this->declare_parameter<std::string>("input_topic", input_topic_);
+            output_topic_ = this->declare_parameter<std::string>("output_topic", output_topic_);
+            
             if (!std::filesystem::exists(folder_path)) {
                 std::filesystem::create_directories(folder_path);
                 std::cerr << "Directory created: " << folder_path << std::endl;
             }
 
             filtered_cloud_subscriber = this -> create_subscription<sensor_msgs::msg::PointCloud2>(
-                "/pcl_car_segmentation/filtered_cloud", 10, std::bind(&CarSegmentation::point_cloud_callback, this, std::placeholders::_1)
+                input_topic_, 10, std::bind(&CarSegmentation::point_cloud_callback, this, std::placeholders::_1)
             );
 
-            car_segmentation_publisher = this -> create_publisher<sensor_msgs::msg::PointCloud2>("/pcl_car_segmentation/car_segmentation", 10);
+            car_segmentation_publisher = this -> create_publisher<sensor_msgs::msg::PointCloud2>(output_topic_, 10);
         }
 
     private:
+        double cluster_voxel_leaf_size_;
+        double cluster_tolerance_;
 
-    void save_cluster(pcl::PointCloud<PointT> :: Ptr cluster, std::string file_name){
+        int min_cluster_size_;
+        int max_cluster_size_;
+
+        double min_length_;
+        double max_length_;
+        double min_width_;
+        double max_width_;
+        double min_height_;
+        double max_height_;
+
+        std::string input_topic_;
+        std::string output_topic_;
+    
+        void save_cluster(pcl::PointCloud<PointT> :: Ptr cluster, std::string file_name){
         file_name = folder_path + file_name;
         pcl::io::savePCDFileASCII(file_name, *cluster);
         std::cerr << "Saved " << cluster -> points.size() << " data points to " << file_name << std::endl;
@@ -78,37 +110,26 @@ class CarSegmentation: public rclcpp ::Node{
         // Apply Voxel Grid Filter
         pcl::VoxelGrid<PointT> voxel_grid_filter;
         voxel_grid_filter.setInputCloud(pcl_cloud);
-        voxel_grid_filter.setLeafSize(0.2f, 0.2f, 0.2f);
+        voxel_grid_filter.setLeafSize(cluster_voxel_leaf_size_, cluster_voxel_leaf_size_, cluster_voxel_leaf_size_);
         voxel_grid_filter.filter(*pcl_cloud);
 
         tree -> setInputCloud(pcl_cloud);
 
-        int min_cluster_size = 100;
-        int max_cluster_size = 700;
-
-        ecludian_cluster_extractor.setClusterTolerance(0.6);
-        ecludian_cluster_extractor.setMinClusterSize(min_cluster_size);
-        ecludian_cluster_extractor.setMaxClusterSize(max_cluster_size);
+        ecludian_cluster_extractor.setClusterTolerance(cluster_tolerance_);
+        ecludian_cluster_extractor.setMinClusterSize(min_cluster_size_);
+        ecludian_cluster_extractor.setMaxClusterSize(max_cluster_size_);
         ecludian_cluster_extractor.setSearchMethod(tree);
         ecludian_cluster_extractor.setInputCloud(pcl_cloud);
         ecludian_cluster_extractor.extract(cluster_indices);
 
-        size_t min_cloud_threshold = min_cluster_size;
-        size_t max_cloud_threshold = max_cluster_size;
-
-        float min_length = 1.0;
-        float max_length = 5.0;
-        float min_width = 1.0;
-        float max_width = 5.0;
-        float min_height = 1.0;
-        float max_height = 2.0;
+        size_t min_cloud_threshold = min_cluster_size_;
+        size_t max_cloud_threshold = max_cluster_size_;
 
         for (size_t i = 0; i < cluster_indices.size(); i++){
             if (cluster_indices[i].indices.size() > min_cloud_threshold + 20 && cluster_indices[i].indices.size() < max_cloud_threshold - 20){
                 pcl::PointCloud<PointT> :: Ptr reasonable_cluster (new pcl:: PointCloud<PointT>) ;
                 pcl::ExtractIndices<PointT> extract_indices;
                 pcl::IndicesPtr indices (new std::vector<int>(cluster_indices[i].indices.begin(), cluster_indices[i].indices.end()));
-                
 
                 extract_indices.setInputCloud(pcl_cloud);
                 extract_indices.setIndices(indices);
@@ -122,9 +143,9 @@ class CarSegmentation: public rclcpp ::Node{
                 float width = max_pt[1] - min_pt[1];
                 float height = max_pt[2] - min_pt[2];
 
-                if (length >= min_length && length <= max_length &&
-                    width >= min_width && width <= max_width &&
-                    height >= min_height && height <= max_height) {
+                if (length >= min_length_ && length <= max_length_ &&
+                width >= min_width_ && width <= max_width_ &&
+                height >= min_height_ && height <= max_height_) {
                         std::string file_name = "car_cluster_" + std::to_string(cluster_indices[i].indices.size()) + "_" + std::to_string(length) + "_" + std::to_string(width) + "_" + std::to_string(height) + ".pcd";
                         //save_cluster(reasonable_cluster, file_name);
                         *all_clusters += *reasonable_cluster;

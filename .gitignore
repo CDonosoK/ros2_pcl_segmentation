@@ -1,4 +1,7 @@
 *.pcd
 *.ipynb
 /kitti_data
-.vscode
+.vscode/
+build/
+install/
+log/
